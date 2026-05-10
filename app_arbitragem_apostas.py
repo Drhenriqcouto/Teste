@@ -151,6 +151,9 @@ def gerar_pdf(apostas_registradas):
 if "apostas_registradas" not in st.session_state:
     st.session_state.apostas_registradas = []
 
+if "proximo_id_aposta" not in st.session_state:
+    st.session_state.proximo_id_aposta = 1
+
 # --------------------------------------------------
 # Título
 # --------------------------------------------------
@@ -356,11 +359,11 @@ else:
 st.divider()
 st.subheader("📌 Registro temporário de apostas")
 
-col_add, col_clear = st.columns([1, 1])
+col_add, col_delete, col_clear = st.columns([1, 1, 1])
 
 with col_add:
     if st.button("Adicionar aposta", type="primary", use_container_width=True):
-        novo_id = len(st.session_state.apostas_registradas) + 1
+        novo_id = st.session_state.proximo_id_aposta
         st.session_state.apostas_registradas.append({
             "id": novo_id,
             "data_hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
@@ -380,7 +383,28 @@ with col_add:
             "lucro_minimo": resultado["lucro_minimo"],
             "linhas": linhas,
         })
+        st.session_state.proximo_id_aposta += 1
         st.success(f"Aposta {novo_id} adicionada ao relatório temporário.")
+
+with col_delete:
+    if st.session_state.apostas_registradas:
+        ids_disponiveis = [aposta["id"] for aposta in st.session_state.apostas_registradas]
+        id_para_excluir = st.selectbox(
+            "Excluir aposta específica",
+            ids_disponiveis,
+            format_func=lambda x: f"Aposta {x}",
+            key="id_para_excluir"
+        )
+
+        if st.button("Excluir aposta selecionada", use_container_width=True):
+            st.session_state.apostas_registradas = [
+                aposta for aposta in st.session_state.apostas_registradas
+                if aposta["id"] != id_para_excluir
+            ]
+            st.success(f"Aposta {id_para_excluir} excluída do histórico temporário.")
+            st.rerun()
+    else:
+        st.caption("Nenhuma aposta disponível para excluir.")
 
 with col_clear:
     if st.button("Limpar apostas registradas", use_container_width=True):
