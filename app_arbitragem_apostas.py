@@ -247,12 +247,49 @@ with col_esc_3:
 
 mercado_escanteio = f"{tipo_escanteio} {numero(linha_escanteio, 1)} escanteios"
 
+st.subheader("🧩 Aplicação dos mercados nas apostas")
+st.write(
+    "Escolha em quais resultados a odd de cartões e a odd de escanteios entrarão. "
+    "Isso permite montar combinações diferentes para vitória, empate e derrota."
+)
+
+opcoes_resultados = [time_a, "Empate", time_b]
+
+col_aplica_cartao, col_aplica_escanteio = st.columns(2)
+with col_aplica_cartao:
+    aplicar_cartao_em = st.multiselect(
+        "Aplicar odd de cartões em:",
+        opcoes_resultados,
+        default=opcoes_resultados,
+        key="aplicar_cartao_em"
+    )
+
+with col_aplica_escanteio:
+    aplicar_escanteio_em = st.multiselect(
+        "Aplicar odd de escanteios em:",
+        opcoes_resultados,
+        default=opcoes_resultados,
+        key="aplicar_escanteio_em"
+    )
+
 # --------------------------------------------------
 # Odds finais e cálculo
 # --------------------------------------------------
-odd_a = odd_a_base * odd_cartao * odd_escanteio
-odd_empate = odd_empate_base * odd_cartao * odd_escanteio
-odd_b = odd_b_base * odd_cartao * odd_escanteio
+def odd_final_por_resultado(resultado_nome, odd_base):
+    odd_final = odd_base
+    usa_cartao = resultado_nome in aplicar_cartao_em
+    usa_escanteio = resultado_nome in aplicar_escanteio_em
+
+    if usa_cartao:
+        odd_final *= odd_cartao
+    if usa_escanteio:
+        odd_final *= odd_escanteio
+
+    return odd_final, usa_cartao, usa_escanteio
+
+odd_a, usa_cartao_a, usa_escanteio_a = odd_final_por_resultado(time_a, odd_a_base)
+odd_empate, usa_cartao_empate, usa_escanteio_empate = odd_final_por_resultado("Empate", odd_empate_base)
+odd_b, usa_cartao_b, usa_escanteio_b = odd_final_por_resultado(time_b, odd_b_base)
 
 valor_total_calculo = valor_total if modo == "Banca fixa" else banca_simulacao
 
@@ -291,10 +328,10 @@ linhas = [
     {
         "Resultado": time_a,
         "Odd base": odd_a_base,
-        "Cartões": mercado_cartao,
-        "Odd cartões": odd_cartao,
-        "Escanteios": mercado_escanteio,
-        "Odd escanteios": odd_escanteio,
+        "Cartões": mercado_cartao if usa_cartao_a else "Não aplicado",
+        "Odd cartões": odd_cartao if usa_cartao_a else 1.00,
+        "Escanteios": mercado_escanteio if usa_escanteio_a else "Não aplicado",
+        "Odd escanteios": odd_escanteio if usa_escanteio_a else 1.00,
         "Odd final": odd_a,
         "Valor apostado": resultado["apostas"][0],
         "Retorno bruto": resultado["retornos"][0],
@@ -303,10 +340,10 @@ linhas = [
     {
         "Resultado": "Empate",
         "Odd base": odd_empate_base,
-        "Cartões": mercado_cartao,
-        "Odd cartões": odd_cartao,
-        "Escanteios": mercado_escanteio,
-        "Odd escanteios": odd_escanteio,
+        "Cartões": mercado_cartao if usa_cartao_empate else "Não aplicado",
+        "Odd cartões": odd_cartao if usa_cartao_empate else 1.00,
+        "Escanteios": mercado_escanteio if usa_escanteio_empate else "Não aplicado",
+        "Odd escanteios": odd_escanteio if usa_escanteio_empate else 1.00,
         "Odd final": odd_empate,
         "Valor apostado": resultado["apostas"][1],
         "Retorno bruto": resultado["retornos"][1],
@@ -315,10 +352,10 @@ linhas = [
     {
         "Resultado": time_b,
         "Odd base": odd_b_base,
-        "Cartões": mercado_cartao,
-        "Odd cartões": odd_cartao,
-        "Escanteios": mercado_escanteio,
-        "Odd escanteios": odd_escanteio,
+        "Cartões": mercado_cartao if usa_cartao_b else "Não aplicado",
+        "Odd cartões": odd_cartao if usa_cartao_b else 1.00,
+        "Escanteios": mercado_escanteio if usa_escanteio_b else "Não aplicado",
+        "Odd escanteios": odd_escanteio if usa_escanteio_b else 1.00,
         "Odd final": odd_b,
         "Valor apostado": resultado["apostas"][2],
         "Retorno bruto": resultado["retornos"][2],
@@ -374,6 +411,8 @@ with col_add:
             "odd_cartao": odd_cartao,
             "mercado_escanteio": mercado_escanteio,
             "odd_escanteio": odd_escanteio,
+            "cartao_aplicado_em": aplicar_cartao_em,
+            "escanteio_aplicado_em": aplicar_escanteio_em,
             "soma_inversos": resultado["soma_inversos"],
             "margem": resultado["margem"],
             "roi": resultado["roi"],
@@ -424,6 +463,8 @@ if st.session_state.apostas_registradas:
             "Odd cartões": aposta["odd_cartao"],
             "Escanteios": aposta["mercado_escanteio"],
             "Odd escanteios": aposta["odd_escanteio"],
+            "Cartão aplicado em": ", ".join(aposta.get("cartao_aplicado_em", [])),
+            "Escanteio aplicado em": ", ".join(aposta.get("escanteio_aplicado_em", [])),
             "Arbitragem": "Sim" if aposta["existe_arbitragem"] else "Não",
             "Lucro mínimo": aposta["lucro_minimo"],
             "ROI mínimo (%)": aposta["roi"],
